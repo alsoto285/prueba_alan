@@ -1,0 +1,1112 @@
+<?php
+
+// # use Namespaces for HTTP request
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ResponseInterface as Response;
+
+use Slim\Factory\AppFactory;
+use Slim\Routing\RouteContext;
+use Slim\Exception\NotFoundException;
+
+use Location\Coordinate;
+use Location\Polygon;
+
+require __DIR__ . '/vendor/autoload.php';
+
+// # include DB connection file
+require 'dbconn.php';
+
+date_default_timezone_set('America/Mexico_City');
+
+$app = AppFactory::create(); 
+$app->addErrorMiddleware(true, true, true);
+
+$basePath = str_replace('/' . basename(__FILE__), '', $_SERVER['SCRIPT_NAME']);
+
+# url base path for WS
+$app = $app->setBasePath($basePath);
+
+date_default_timezone_set('America/Mexico_City');
+
+
+/**
+ * @OA\Server(url="https://domain/folder_name/")
+ * @OA\Info(title="PHP SLIM 4 Template", version="1.0")
+ */
+
+#main route
+$app->get('/', function (Request $request, Response $response, $args) {
+    $response->getBody()->write("TRANSPORTACION MANDARINA APP API v1.0 2022");
+
+    $routeContext = RouteContext::fromRequest($request);
+    $basePath = $routeContext->getBasePath();
+
+    return $response;
+});
+
+
+$app->post('/validateUserLoginApp', function (Request $request, Response $response, array $args) {
+
+    $data = json_decode($request->getBody());
+
+    $usuario = $data->user;
+    $pass = $data->pass;   
+    
+    if($usuario != ''){
+        $pass = hash('sha512', $data->pass);
+
+    	$dataOut = "";
+
+        $db = getDB();
+        
+        /*$sqlUser = "SELECT ID_USER_SYSTEM, ID_KIND_USER, NAME, EMAIL, COMPANY 
+                        FROM USER_SYSTEM 
+                        WHERE EMAIL = '".$usuario."' AND PASSWORD = '".$pass."' AND ENABLE = '1';";*/
+
+        $sqlUser = "CALL strValidateUserLoginApp('".$usuario."', '".$pass."');";
+
+        ///echo $sqlUser;
+        $stmt = $db->prepare($sqlUser);
+        $stmt->execute();
+
+        $mainCount = $stmt->rowCount();
+        
+        if($mainCount > 0) {
+			$userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+			if($userData[0]['bandera'] == 1){
+				
+				$status = "200";
+				$data = ($userData);
+				$message = "Valid User.";
+			}
+			
+			else{
+				$userData = '';
+				$status = "300";
+				$data = $userData;
+				$message = "User not valid.";
+			}
+            
+            // registra log entrada
+            //$nomPC =  gethostbyaddr($_SERVER['REMOTE_ADDR']);
+            //$sqlLog = "INSERT INTO `log_entrada` (`email`, `ip`, `gateway`) VALUES ('".$usuario."', '".$_SERVER['REMOTE_ADDR']."', '".$nomPC."');";
+            //$stmtLog = $db->prepare($sqlLog);
+            //$stmtLog->execute();
+    
+       		//$dataOut = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    		//echo '{"status":"OK", "usuario": ' . json_encode($dataOut) . '}';
+
+            
+            
+        }
+        else{
+            $status = "300";
+            $data = '';
+            $message = "User not registered.";
+        }
+       
+    	$db = null; 
+    }
+    
+    
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+    
+});
+
+
+$app->post('/sendMailToRecoverPassword', function (Request $request, Response $response, array $args) {
+
+    $data = json_decode($request->getBody());
+
+    $email = $data->email;
+
+    if($email != ''){
+    
+    	$dataOut = "";
+
+        $db = getDB();
+        
+        $sqlUser = "SELECT ID_USER_SYSTEM, ID_KIND_USER, NAME, EMAIL, COMPANY 
+                        FROM USER_SYSTEM 
+                        WHERE EMAIL = '".$usuario."' AND PASSWORD = '".$pass."' AND ENABLE = '1';";
+        ///echo $sqlUser;
+        $stmt = $db->prepare($sqlUser);
+        $stmt->execute();
+
+        $mainCount = $stmt->rowCount();
+        
+        if($mainCount > 0) {
+
+            $userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $status = "200";
+            $data = ($userData);
+            $message = "Valid User.";
+            
+        }
+        else{
+            $status = "300";
+            $data = '';
+            $message = "User not registered.";
+        }
+       
+    	$db = null; 
+    }
+    else{
+        $status = "301";
+        $data = '';
+        $message = "Bad Request";
+        
+    }
+    
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+    
+});
+
+$app->post('/validateCode', function (Request $request, Response $response, array $args) {
+
+    $data = json_decode($request->getBody());
+
+    $code = $data->code;
+
+    if($code != ''){
+    
+    	$dataOut = "";
+
+        $db = getDB();
+        
+        $sqlUser = "SELECT ID_USER_SYSTEM, ID_KIND_USER, NAME, EMAIL, COMPANY 
+                        FROM USER_SYSTEM 
+                        WHERE EMAIL = '".$usuario."' AND PASSWORD = '".$pass."' AND ENABLE = '1';";
+
+        ///echo $sqlUser;
+        $stmt = $db->prepare($sqlUser);
+        $stmt->execute();
+
+        $mainCount = $stmt->rowCount();
+        
+        if($mainCount > 0) {
+
+            $userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $status = "200";
+            $data = ($userData);
+            $message = "Valid User.";
+            
+        }
+        else{
+            $status = "300";
+            $data = '';
+            $message = "User not registered.";
+        }
+       
+    	$db = null; 
+    }
+    else{
+        $status = "301";
+        $data = '';
+        $message = "Bad Request";
+        
+    }
+    
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+    
+});
+
+// Recover Password
+$app->post('/recoverPassword', function (Request $request, Response $response, array $args) {
+    
+    date_default_timezone_set('America/Mexico_City');
+    
+    $data = json_decode($request->getBody());
+
+    $ID = $data -> id;  
+    $CONTRASEÑA = $data -> password;  
+
+    $password = hash('sha512', $CONTRASEÑA);
+    
+    $db = getDB();
+    $sql = "CALL strChangePass('$ID','$password');";     
+	$stmt = $db->prepare($sql);
+	$stmt->execute();
+    $mainCount = $stmt->rowCount();
+
+	if($mainCount > 0) {
+		$userData = $stmt->fetchAll(PDO::FETCH_ASSOC); 
+        if($userData[0]['ALERTA'] == 1){
+            $status = "201";
+            $message = "Pasword updating.";
+        }
+	}	
+    else{
+        $status = "301";
+		$message = "Error!, server error.";
+	}
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $userData);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+});
+
+
+// GET DESCARGA ALICE POR FECHA
+$app->POST('/getDayServices', function (Request $request, Response $response, array $args) {
+    
+    date_default_timezone_set('America/Mexico_City');
+
+    $data = json_decode($request->getBody());
+    
+    $fecha = $data->fecha;    // in dd/mm/yyy format
+
+    $db = getDB();
+    $sql = "CALL strGetTransfersByDate('$fecha');"; 
+	$stmt = $db->prepare($sql);
+	$stmt->execute();
+    $mainCount = $stmt->rowCount();
+
+	if($mainCount > 0) {
+		$userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if($userData[0]['bandera'] == 1){
+            $status = "200";
+            $data = ($userData);
+            $message = "Transfers Llegadas/Salidas";
+        }
+        else{
+            $status = "301";
+            $data = '';
+            $message = "Not found registers in this date";
+        }   
+	}	
+    else{
+        $status = "301";
+		$message = "Error!, server error.";
+	}
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $userData);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+});
+
+
+// GET TRANSFER POR ID
+$app->POST('/strGetServiceDetail', function (Request $request, Response $response, array $args) {
+    
+    date_default_timezone_set('America/Mexico_City');
+
+    $data = json_decode($request->getBody());
+    
+    $idTransfer = $data->idReservation;    // in dd/mm/yyy format
+
+    $db = getDB();
+    $sql = "CALL strGetTransfersById('$idTransfer');"; 
+	$stmt = $db->prepare($sql);
+	$stmt->execute();
+    $mainCount = $stmt->rowCount();
+
+	if($mainCount > 0) {
+		$userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        if($userData[0]['bandera'] == 1){
+            $status = "200";
+            $data = ($userData);
+            $message = "Transfers Llegadas/Salidas";
+        }
+        else{
+            $status = "301";
+            $data = '';
+            $message = "Not found registers in this date";
+        }   
+	}	
+    else{
+        $status = "301";
+		$message = "Error!, server error.";
+	}
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $userData);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+});
+
+
+$app->post('/saveReport', function (Request $request, Response $response, array $args) {
+
+    $data = json_decode($request->getBody());
+
+    $code = $data->code;
+
+    if($code != ''){
+    
+    	$dataOut = "";
+
+        $db = getDB();
+        
+        $sqlUser = "SELECT ID_USER_SYSTEM, ID_KIND_USER, NAME, EMAIL, COMPANY 
+                        FROM USER_SYSTEM 
+                        WHERE EMAIL = '".$usuario."' AND PASSWORD = '".$pass."' AND ENABLE = '1';";
+
+        ///echo $sqlUser;
+        $stmt = $db->prepare($sqlUser);
+        $stmt->execute();
+
+        $mainCount = $stmt->rowCount();
+        
+        if($mainCount > 0) {
+
+            $userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $status = "200";
+            $data = ($userData);
+            $message = "Valid User.";
+            
+        }
+        else{
+            $status = "300";
+            $data = '';
+            $message = "User not registered.";
+        }
+       
+    	$db = null; 
+    }
+    else{
+        $status = "301";
+        $data = '';
+        $message = "Bad Request";
+        
+    }
+    
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+    
+});
+
+
+
+
+
+$app->post('/sendSignOfService', function (Request $request, Response $response, array $args) {
+
+    $data = json_decode($request->getBody());
+
+    $code = $data->code;
+
+    if($code != ''){
+    
+    	$dataOut = "";
+
+        $db = getDB();
+        
+        $sqlUser = "SELECT ID_USER_SYSTEM, ID_KIND_USER, NAME, EMAIL, COMPANY 
+                        FROM USER_SYSTEM 
+                        WHERE EMAIL = '".$usuario."' AND PASSWORD = '".$pass."' AND ENABLE = '1';";
+
+        ///echo $sqlUser;
+        $stmt = $db->prepare($sqlUser);
+        $stmt->execute();
+
+        $mainCount = $stmt->rowCount();
+        
+        if($mainCount > 0) {
+
+            $userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $status = "200";
+            $data = ($userData);
+            $message = "Valid User.";
+            
+        }
+        else{
+            $status = "300";
+            $data = '';
+            $message = "User not registered.";
+        }
+       
+    	$db = null; 
+    }
+    else{
+        $status = "301";
+        $data = '';
+        $message = "Bad Request";
+        
+    }
+    
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+    
+});
+
+
+$app->post('/updateServiceAmenities', function (Request $request, Response $response, array $args) {
+
+    $data = json_decode($request->getBody());
+
+    $code = $data->code;
+
+    if($code != ''){
+    
+    	$dataOut = "";
+
+        $db = getDB();
+        
+        $sqlUser = "SELECT ID_USER_SYSTEM, ID_KIND_USER, NAME, EMAIL, COMPANY 
+                        FROM USER_SYSTEM 
+                        WHERE EMAIL = '".$usuario."' AND PASSWORD = '".$pass."' AND ENABLE = '1';";
+
+        ///echo $sqlUser;
+        $stmt = $db->prepare($sqlUser);
+        $stmt->execute();
+
+        $mainCount = $stmt->rowCount();
+        
+        if($mainCount > 0) {
+
+            $userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $status = "200";
+            $data = ($userData);
+            $message = "Valid User.";
+            
+        }
+        else{
+            $status = "300";
+            $data = '';
+            $message = "User not registered.";
+        }
+       
+    	$db = null; 
+    }
+    else{
+        $status = "301";
+        $data = '';
+        $message = "Bad Request";
+        
+    }
+    
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+    
+});
+
+// FLIGHT ARRIVALS
+$app->GET('/wsFlightsScheduledArrivalsPVR', function (Request $request, Response $response, array $args) {
+    
+    date_default_timezone_set('America/Mexico_City');
+
+    ///$data = json_decode($request->getBody());
+
+    $apiKey = "9ESuVub49oVO9skBk8uziluzGmWHrlJ9";
+
+    $fxmlUrl = "https://aeroapi.flightaware.com/aeroapi/";
+
+    $airport = 'PVR';
+    $queryParams = array(
+        'max_pages' => 2
+    );
+    $url = $fxmlUrl . 'airports/' . $airport . '/flights/scheduled_arrivals' ;
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('x-apikey: ' . $apiKey));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+
+    if ($result = curl_exec($ch)) {
+        curl_close($ch);
+        ///echo $result;
+    }
+
+    $response->getBody()->write(($result));
+    return $response;
+
+});
+
+// FLIGHT DEPARTURES
+$app->GET('/wsFlightsScheduledDeparturesPVR', function (Request $request, Response $response, array $args) {
+    
+    date_default_timezone_set('America/Mexico_City');
+
+    ///$data = json_decode($request->getBody());
+
+    $apiKey = "9ESuVub49oVO9skBk8uziluzGmWHrlJ9";
+
+    $fxmlUrl = "https://aeroapi.flightaware.com/aeroapi/";
+
+    $airport = 'PVR';
+    $queryParams = array(
+        'max_pages' => 2
+    );
+    $url = $fxmlUrl . 'airports/' . $airport . '/flights/scheduled_departures' ;
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('x-apikey: ' . $apiKey));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+
+    if ($result = curl_exec($ch)) {
+        curl_close($ch);
+        ///echo $result;
+    }
+
+    /*$return = array(
+        'status' => '200',
+        'message' => 'flights',
+        'data' => $result);*/
+
+    $response->getBody()->write(($result));
+    return $response;
+
+});
+
+
+// FLIGHT DETAIL
+$app->get('/wsGetFlightStatus/{flightNumber}', function (Request $request, Response $response, array $args) {
+    
+    date_default_timezone_set('America/Mexico_City');
+
+    //$data = json_decode($request->getBody());
+
+    //$id_flight = $data->id_flight;
+
+    $id_flight =  $args['flightNumber'];
+
+    $apiKey = "9ESuVub49oVO9skBk8uziluzGmWHrlJ9";
+
+    $fxmlUrl = "https://aeroapi.flightaware.com/aeroapi/";
+
+    $queryParams = array(
+        'max_pages' => 2
+    );
+    $url = $fxmlUrl . 'flights/' . $id_flight . '' ;
+
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('x-apikey: ' . $apiKey));
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+
+    if ($result = curl_exec($ch)) {
+        curl_close($ch);
+        ///echo $result;
+    }
+
+    $response->getBody()->write(($result));
+    return $response;
+
+});
+
+
+$app->get('/getTotalServicesToday', function (Request $request, Response $response, array $args) {
+    
+    $dataOut = "";
+
+    $db = getDB();
+
+    $today = date("Y-m-d"); 
+    //$today = '2022-01-05';
+    
+    $sqlCount = "CALL strGetTotalServicesToday('".$today."')";
+
+    ///echo $sqlUser;
+    $stmt = $db->prepare($sqlCount);
+    $stmt->execute();
+
+    $mainCount = $stmt->rowCount();
+    
+    if($mainCount > 0) {
+
+        $userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $status = "200";
+        $data = ($userData);
+        $message = "Total services for today";
+        
+    }
+    else{
+        $status = "300";
+        $data = '';
+        $message = "No services for today";
+    }
+   
+    $db = null; 
+
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+
+});
+
+$app->get('/getTotalOperators', function (Request $request, Response $response, array $args) {
+    
+    $dataOut = "";
+
+    $db = getDB();
+
+    $today = date("Y-m-d"); 
+    //$today = '2022-01-05';
+    
+    $sqlCount = "CALL strGetTotalOperators()";
+
+    ///echo $sqlUser;
+    $stmt = $db->prepare($sqlCount);
+    $stmt->execute();
+
+    $mainCount = $stmt->rowCount();
+    
+    if($mainCount > 0) {
+
+        $userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $status = "200";
+        $data = ($userData);
+        $message = "Total operators";
+        
+    }
+    else{
+        $status = "300";
+        $data = '';
+        $message = "No operators";
+    }
+   
+    $db = null; 
+
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+
+});
+
+$app->get('/getTotalVehicles', function (Request $request, Response $response, array $args) {
+    
+    $dataOut = "";
+
+    $db = getDB();
+
+    $today = date("Y-m-d"); 
+    //$today = '2022-01-05';
+    
+    $sqlCount = "CALL strGetTotalVehicles()";
+
+    ///echo $sqlUser;
+    $stmt = $db->prepare($sqlCount);
+    $stmt->execute();
+
+    $mainCount = $stmt->rowCount();
+    
+    if($mainCount > 0) {
+
+        $userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $status = "200";
+        $data = ($userData);
+        $message = "Total vehicles";
+        
+    }
+    else{
+        $status = "300";
+        $data = '';
+        $message = "No vehicles";
+    }
+   
+    $db = null; 
+
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+
+});
+
+
+// GET VEHICLE LOCATION BY ID
+$app->post('/wsGetVehicleLocationById', function (Request $request, Response $response, array $args) {
+    
+    $data = json_decode($request->getBody());
+
+    $id_vehicle = $data->id_vehicle;
+
+    $url = "https://api.samsara.com/fleet/vehicles/locations";
+
+    $curl = curl_init($url);
+    curl_setopt($curl, CURLOPT_URL, $url);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+    $headers = array(
+        "Accept: application/json",
+        "Authorization: Bearer samsara_api_OzFZNOAKcjYxa0RI2NSqIpCGWjzAIW",
+    );
+
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+    //for debug only!
+    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+
+
+    $geofenceBOH = new Polygon();
+    $geofenceBOH->addPoint(new Coordinate(20.978363,-105.331708));
+    $geofenceBOH->addPoint(new Coordinate(20.978362,-105.329213));
+    $geofenceBOH->addPoint(new Coordinate(20.975983,-105.329076));
+    $geofenceBOH->addPoint(new Coordinate(20.975733,-105.332161));
+
+    $geofenceAPTO = new Polygon();
+    $geofenceAPTO->addPoint(new Coordinate(20.678162,-105.250619));
+    $geofenceAPTO->addPoint(new Coordinate(20.678619,-105.247975));
+    $geofenceAPTO->addPoint(new Coordinate(20.676433,-105.248060));
+    $geofenceAPTO->addPoint(new Coordinate(20.676198,-105.250515));
+
+    $geofencePENINSULA = new Polygon();
+    $geofencePENINSULA->addPoint(new Coordinate(20.647259,-105.240640));
+    $geofencePENINSULA->addPoint(new Coordinate(20.647785,-105.237648));
+    $geofencePENINSULA->addPoint(new Coordinate(20.645820,-105.237362));
+    $geofencePENINSULA->addPoint(new Coordinate(20.645318,-105.240598));
+
+    if ($result = curl_exec($curl)) {
+        curl_close($curl);
+        ///echo $result;
+
+        $arrResult = json_decode($result, true);
+        //var_dump ($arrResult['data'][0]);
+        ///echo count($arrResult['data']);
+
+        $db = getDB();
+        $location = '';
+
+        for ( $i = 0; $i < count($arrResult['data']); $i++ ) {
+
+            $id =  $arrResult['data'][$i]['id'];
+            $name =  $arrResult['data'][$i]['name'];
+            $latitude =  $arrResult['data'][$i]['location']['latitude'];
+            $longitude =  $arrResult['data'][$i]['location']['longitude'];
+            $reverseGeo =  $arrResult['data'][$i]['location']['reverseGeo']['formattedLocation'];
+
+            ///echo "ID: " . $id.", name: " . $name . ", lat: " . $latitude . ", lon: " . $longitude . ", rev: " . $reverseGeo . "<br>";
+
+            $insidePoint = new Coordinate($latitude, $longitude);
+
+            if($geofenceBOH->contains($insidePoint)){
+                $location = 'BOH';
+            }
+            else if($geofenceAPTO->contains($insidePoint)){
+                $location = 'APTO';
+            }
+            else if($geofencePENINSULA->contains($insidePoint)){
+                $location = 'PENINSULA';
+            }
+            else{
+                $location = '';
+            }
+            
+            
+            $sqlUpd = 'UPDATE VEHICLE
+                SET
+                REVERSE_LOCATION = \''. $reverseGeo. '\',
+                LATITUDE = \''. $latitude . '\',
+                LONGITUDE = \'' . $longitude . '\',
+                LOCATION = \'' . $location . '\',
+                UPDATE_DATE = \'' . date('Y-m-d H:i:s') . '\'
+                WHERE ID_SAMSARA_VEHICLE = \''. $id . '\';'; 
+            
+                //echo $sqlUpd;
+
+            $stmt = $db->prepare($sqlUpd);
+            $stmt->execute();
+
+        }
+
+        if($stmt){
+            // search vehicle by ID
+
+            $sqlFind = "CALL strSearchVehicleById('".$id_vehicle."');";
+            $stmtF = $db->prepare($sqlFind);
+            $stmtF->execute();
+
+            $mainCountF = $stmtF->rowCount();
+    
+            if($mainCountF > 0) {
+
+                $vehicleData = $stmtF->fetchAll(PDO::FETCH_ASSOC);
+
+                $status = "200";
+                $data = ($vehicleData);
+                $message = "Vehicle found!";
+                
+            }
+            else{
+                $status = "300";
+                $data = '';
+                $message = "Vehicle not found!";
+            }
+
+        }
+
+    }
+    else{
+        $status = "301";
+        $message = "Server error. Service not available";
+    }
+
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+
+});
+
+
+// GET ALL VEHICLES FUEL PERCENTS
+$app->GET('/wsGetAllVehiclesFuelPercents', function (Request $request, Response $response, array $args) {
+    
+    $url = "https://api.samsara.com/fleet/vehicles/stats?types=fuelPercents";
+
+    $TIMZMX = new DateTimeZone('America/Mexico_City');
+
+    $curl = curl_init($url);
+    curl_setopt($curl, CURLOPT_URL, $url);
+    curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+
+    $headers = array(
+        "Accept: application/json",
+        "Authorization: Bearer samsara_api_OzFZNOAKcjYxa0RI2NSqIpCGWjzAIW",
+    );
+
+    curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+    //for debug only!
+    curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
+    curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+
+
+    if ($result = curl_exec($curl)) {
+        curl_close($curl);
+        ///echo $result;
+
+        $arrResult = json_decode($result, true);
+        //var_dump ($arrResult['data'][0]);
+        ///echo count($arrResult['data']);
+
+        $db = getDB();
+        $location = '';
+
+        for ( $i = 0; $i < count($arrResult['data']); $i++ ) {
+
+            $id =  $arrResult['data'][$i]['id'];
+            $name =  $arrResult['data'][$i]['name'];
+            $fuelPercent =  $arrResult['data'][$i]['fuelPercent']['value'];
+            $fuelPercentDate =  new DateTime($arrResult['data'][$i]['fuelPercent']['time'], $TIMZMX);
+            //$fuelPercentDate = date("Y-m-d H:i:s", strtotime($arrResult['data'][$i]['fuelPercent']['time']) );
+            //$fuelPercentDate->setTimezone(new DateTimeZone('America/Mexico_City'));
+            $fuelPercentDate = $fuelPercentDate->format('Y-m-d H:i:s');
+
+            //$fuelPercentDate = json_encode($fuelPercentDate);
+
+            ///echo "ID: " . $id.", name: " . $name . ", lat: " . $latitude . ", lon: " . $longitude . ", rev: " . $reverseGeo . "<br>";
+            
+            $sqlUpd = 'UPDATE VEHICLE
+                SET
+                FUEL = \''. $fuelPercent. '\',
+                LAST_FUEL_RECHARGE_DATE = \''. $fuelPercentDate . '\'
+                WHERE ID_SAMSARA_VEHICLE = \''. $id . '\';'; 
+            
+                //echo $sqlUpd;
+
+            $stmt = $db->prepare($sqlUpd);
+            $stmt->execute();
+
+        }
+
+        if($stmt){
+            $status = "200";
+            $message = "Vehicle stats successfully updated";
+        }
+
+    }
+    else{
+        $status = "300";
+        $message = "Server error. Service not available";
+    }
+
+    $return = array(
+        'status' => $status,
+        'message' => $message);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+
+});
+
+
+//  Get all amenities - Vlad
+$app->get('/wsGetAllAmenities', function (Request $request, Response $response, array $args) {
+    $data = json_decode($request->getBody());
+
+    $db = getDB();
+    $sql = "CALL strGetAmenities();"; 
+	$stmt = $db->prepare($sql);
+	$stmt->execute();
+    $mainCount = $stmt->rowCount();
+    	if($mainCount > 0) {
+            $airlinesData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $status = "OK";
+        $message = "Amenities found";
+        
+	}else{
+        $status = "Error";
+		$message = "Error!, there are not amenities in the database";
+	}
+    
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $airlinesData);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+});
+
+// change status transfers
+$app->post('/changeServiceStatus', function (Request $request, Response $response, array $args) {
+
+    $data = json_decode($request->getBody());
+
+    $id_service = $data->id_service;
+    $status = $data->status;
+
+    if($id_service != ''){
+    
+    	$dataOut = "";
+
+        $db = getDB();
+        
+        $sqlUser = "CALL strChangeServiceStatus('".$id_service."', '".$status."');";
+
+        ///echo $sqlUser;
+        $stmt = $db->prepare($sqlUser);
+        $stmt->execute();
+
+        $mainCount = $stmt->rowCount();
+        
+        if($mainCount > 0) {
+
+            $userData = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $status = "200";
+            $data = ($userData);
+            $message = "Service status changed successfully.";
+            
+        }
+        else{
+            $status = "300";
+            $data = '';
+            $message = "Service ID not found.";
+        }
+       
+    	$db = null; 
+    }
+    else{
+        $status = "301";
+        $data = '';
+        $message = "Bad Request";
+        
+    }
+    
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $data);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+    
+});
+
+
+
+// Recover Passwor APP @Vlad
+$app->post('/strRecoverPassword', function (Request $request, Response $response, array $args) {
+    
+    $data = json_decode($request->getBody());
+
+    $ID = $data -> id;  
+    $CONTRASEÑA = $data -> password;  
+
+    $password = hash('sha512', $CONTRASEÑA);
+    
+    $db = getDB();
+    $sql = "CALL strRecoverPasswordApp('$ID','$password');";     
+	$stmt = $db->prepare($sql);
+	$stmt->execute();
+    $mainCount = $stmt->rowCount();
+
+	if($mainCount > 0) {
+		$userData = $stmt->fetchAll(PDO::FETCH_ASSOC); 
+        if($userData[0]['ALERTA'] == 1){
+            $status = "201";
+            $message = "Pasword updating.";
+        }
+	}	
+    else{
+        $status = "301";
+		$message = "Error!, server error.";
+	}
+    $return = array(
+        'status' => $status,
+        'message' => $message,
+        'data' => $userData);
+
+    $response->getBody()->write(json_encode($return));
+    return $response;
+});
+
+
+
+// let's go!!
+     
+$app->run(); 

@@ -15,11 +15,10 @@
                     enable int (10));
                     /* inserta 2 uuarios */
  INSERT INTO cat_usuario (nombre, telefono, email, pass, rfc, notas, enable) 
-VALUES ('Jose', '59890898', 'jo_@0910', 'jos', 'ADMIN', 'nota', '1');
+VALUES ('Jose', '59890898', 'jo_@0910', '0d1a3925bed1c9e389a357ff0744a8b8a80a97221aa8c51fa5e7688a9e57a72a29fe29a1195464766a0085216f34343f78136e3ef12be7fb35afac82f0a8bf6e', 'ADMIN', 'nota', '1');
 
 INSERT INTO cat_usuario (nombre, telefono, email, pass, rfc, notas, enable) 
-VALUES ('alan', '50890898', 'alan@gmail.com', 'ALMI0910', 'ALAM0990', 'nota', '1');
-
+VALUES ('alan', '50890898', 'alan@gmail.com', '0d1a3925bed1c9e389a357ff0744a8b8a80a97221aa8c51fa5e7688a9e57a72a29fe29a1195464766a0085216f34343f78136e3ef12be7fb35afac82f0a8bf6e', 'ALAM0990', 'nota', '1');
 /* Inicio Stored Procedures */    
   /*Stored  que trae los usuarios activos*/   
 DELIMITER %%
@@ -93,5 +92,6 @@ END %%
 DELIMITER ; 
  
 	select * from cat_usuario ;
+    
     
    

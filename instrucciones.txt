@@ -1,0 +1,40 @@
+author Alan Sánchez Soto
+
+1.- Ejecutar el script que se encuentra en la raiz del proyecto llamado prueba 1.sql
+    o copiarlo del txt llamado sql.txt tomando en cuenta que se realizo con MySQL workbench 
+    se recomienda ejecutarlo  de manera local en  el mismo IDE.
+
+2.- En el proyecto sen cuentra una carpeta llamada prueba_ws dentro de ella
+    se encuentra una archivo llamado  dbconn.php debera abrirlo para 
+    verificar que la conexión local  tenga el mismo usuario y la misma contraseña
+    en mi caso los parametros son los siguientes:
+
+    define('DB_SERVER', '127.0.0.1');   
+     define('DB_USERNAME', 'root');
+    define('DB_PASSWORD', 'root');
+    define('DB_DATABASE', 'prueba');
+    
+   de caso que no coinsidan solo debere colocar los parametro que correspondan a su conexión.
+
+3.- En el script tiene 2 usuarios de agregados con sus respectivos correos y contraseñas
+    los cuales son:
+       user 1
+    correo: jo_@0910
+    pass: alan
+
+    user 2
+    correo: alan@gmail.com
+    pass: alan
+    
+     los dejo en disposición ya que las contraseñas bienen crifradas en sha512.
+
+4.- El formilario de inicio se encuentra precionando el boton registrate.
+   
+
+  Quedo a la orden para cualquier aclaración.
+   tel  55 43 34 31 95
+   correo alsoto285@gmail.com
+   git hub alsoto85.
+    
+
+
